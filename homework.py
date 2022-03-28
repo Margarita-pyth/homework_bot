@@ -8,11 +8,6 @@ from logging import StreamHandler
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename='main.log',
-    format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
-)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = StreamHandler()
@@ -24,14 +19,14 @@ handler.setFormatter(formatter)
 
 PRACTICUM_TOKEN = os.getenv('TOKEN')
 TELEGRAM_TOKEN = os.getenv('TOKEN_TLG')
-TELEGRAM_CHAT_ID = os.getenv('Chat_id')
+TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
 
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
-HOMEWORK_STATUSES = {
+VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -42,9 +37,13 @@ def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info('Сообщение отправлено в чат {TELEGRAM_CHAT_ID}: {message}')
-    except Exception:
-        logger.error('Ошибка отправки сообщения в чат')
+        logger.info('Отправляем сообщение в телеграмм')
+    except telegram.error.TelegramError as error:
+        raise telegram.error.TelegramError(f'Ошибка отправки телеграм'
+                                           f'сообщения:{error}')
+    else:
+        logger.info(f'Сообщение отправлено в телеграмм:'
+                    f'{TELEGRAM_CHAT_ID}:{message}')
 
 
 def get_api_answer(current_timestamp):
@@ -55,6 +54,7 @@ def get_api_answer(current_timestamp):
         homework_statuses = requests.get(ENDPOINT, headers=HEADERS,
                                          params=params)
         status_code = homework_statuses.status_code
+        logger.info('Начат запрос к API')
     except Exception as error:
         logging.error(f'Ошибка запроса к эндпоинту {error}')
         raise Exception(f'Ошибка запроса к эндпоинту {error}')
@@ -65,14 +65,15 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    if type(response) is not dict:
+    logger.info('Проверяем ответ API')
+    if not isinstance(response, dict):
         raise TypeError('Ответ API не содержит словарь')
-    try:
-        list_homeworks = response['homeworks']
-        homework = list_homeworks[0]
-    except IndexError:
-        logger.error('Пуст список работ')
-        raise IndexError('Пуст список работ')
+    if 'homeworks' not in response:
+        raise KeyError('Отсутствует ключ homeworks')
+    list_homeworks = response.get('homeworks')
+    if len(list_homeworks) == 0:
+        raise Exception('Список работ пуст')
+    homework = list_homeworks[0]
     return homework
 
 
@@ -84,23 +85,22 @@ def parse_status(homework):
         raise KeyError('Отсутствует ключ homework_name')
     homework_name = homework['homework_name']
     homework_status = homework['status']
-    if homework_status not in HOMEWORK_STATUSES:
+    if homework_status not in VERDICTS:
         raise Exception(f'Неизвестный статус {homework_status}')
-    verdict = HOMEWORK_STATUSES[homework_status]
+    verdict = VERDICTS[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
-        return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    STATUS = HOMEWORK_STATUSES
+    STATUS = VERDICTS
     # Проверка переменных окружения
     if not check_tokens():
         logger.critical('Отсутствуют переменные окружения')
@@ -118,8 +118,14 @@ def main():
         except Exception as error:
             message = f'{error}'
             send_message(bot, message)
-        time.sleep(RETRY_TIME)
+        finally:
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename='main.log',
+        format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
+    )
     main()
