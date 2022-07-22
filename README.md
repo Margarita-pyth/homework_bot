@@ -1,5 +1,5 @@
 # API "homework_bot"
-#### Проверяет статус проверки домашней работы в "Яндекс.Практикум".
+#### Получает статус проверки домашней работы в "Яндекс.Практикум".
 
 ##### Краткое описание функционала API:
 - Данный Api-сервис делает запрос к единственному эндпоинту - "Яндекс.Практикум" и возвращает  соответствующий вердикту ответ. 
@@ -51,7 +51,7 @@ MIT
 Margarita-pyth**
 ____________________________________________________________________________________
 # API "homework_bot"
-#### Checks the status of checking homework in "Yandex.Workshop".
+#### Gets the status of checking homework in Yandex.Practice.
 
 ##### Brief description of API functionality:
 
