@@ -16,8 +16,8 @@
 
 ## Как запустить проект:
 Клонировать репозиторий и перейти в него в командной строке:
-https://github.com/Margarita-pyth/homework_bot
 ```sh
+git clone https://github.com/Margarita-pyth/homework_bot
 cd homework_bot
 ```
 Cоздать и активировать виртуальное окружение:
@@ -69,8 +69,8 @@ ________________________________________________________________________________
 
 ## How to run the project:
 Clone the repository and change into it on the command line:
-https://github.com/Margarita-pyth/homework_bot
 ```sh
+git clone https://github.com/Margarita-pyth/homework_bot
 cd homework_bot
 ```
 Create and activate virtual environment:
